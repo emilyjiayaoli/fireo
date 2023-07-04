@@ -1,11 +1,12 @@
 # fireo
-Model shape debugger for torch. Think torch.summary but better
+Model shape debugger for torch. Think torch.summary but better. Streamlining your PyTorch debugging experience.
 
 ### Why fireo
 
 Basic:
 - calculates model's trainable parameter #
 - model shape debugging via model initialization + one forward pass given arbitrary inputs
+  
 Bonus:
 - only useful print statements, excluding PyTorch internals.
 - auto-tracks and saves local variable shapes w/o manual `print()` statements or debugger
@@ -13,7 +14,7 @@ Bonus:
 - no modifications to source code needed
 
 ## Get Started
-```
+```python
 import fireo.torch_shape_inspector as tsi
 from sample_model.models.baseline_classification import MLP_Baseline # import model
 
