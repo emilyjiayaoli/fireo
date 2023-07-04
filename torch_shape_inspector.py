@@ -148,39 +148,6 @@ class TorchShapeInspector():
 
                 self.print_local_vars(local_vars, frame[3], frame[2], frame[1])
 
-                # module_name_at_error = line[line.find("self.")+len("self."):line.find("(")]
-                # args_list, kwarg_names = self.get_arg_names(self.remove_initial_indentation(line))
-                # print("args:", args_list[0], "kwargs", kwarg_names, "module_name_at_error:", module_name_at_error)
-
-                # print(self.model_modules.keys())
-                # if module_name_at_error in self.model_modules:
-                #     print('module_name_at_error in self.model_modules', self.model_modules.keys())
-
-                #calling the module again
-                
-                # try:
-                #     arg_tuple = tuple([local_vars[arg] for arg in args_list])
-                #     kwargs_tuple = tuple([local_vars[kwarg] for kwarg in kwarg_names])
-
-                #     arg_tuple_shapes = tuple([local_vars[arg].shape if isinstance(local_vars[arg], torch.Tensor) else local_vars[arg] for arg in args_list])
-                #     kwargs_tuple_shapes = tuple([local_vars[kwarg].shape if isinstance(local_vars[kwarg], torch.Tensor) else local_vars[kwarg] for kwarg in kwarg_names])
-                #     # kwargs_tuple = tuple([local_vars[kwarg] for kwarg in kwarg_names])
-                #     print("arg_tuple:", arg_tuple_shapes, "kwargs_tuple:", kwargs_tuple_shapes)
-                #     print(arg_tuple_shapes + kwargs_tuple_shapes)
-
-                #     print("In the call: self." + module_name_at_error, arg_tuple_shapes + kwargs_tuple_shapes)
-                #     self.model_modules[module_name_at_error](*(arg_tuple + kwargs_tuple)) # the call
-
-                # except Exception as e:
-                #     print(f"Caught an error: {e}")
-                #     stack_trace = inspect.trace() # list of FrameInfo objects
-                #     frame = stack_trace[-1] # get frame at which error occured, is a list [FrameInfo, 26, fn3, [error], ...]
-                #     print("Error in the method:", frame[3], "at line", frame[2], "in", frame[1])
-
-                #     if self.print_fn_call_stack:
-                #         self.print_fn_call_stack(stack_trace)
-
-                #     # traceback.print_exc()
 
     def print_model_params(self):
         """
@@ -253,6 +220,8 @@ class TorchShapeInspector():
 
                 if self.print_fn_call_stack:
                     self.print_fn_call_stack(stack_trace)
+                
+                if self.cfgs["print_local_vars_at_error"]:
                     self.dive_deeper(stack_trace)
             
 

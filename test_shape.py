@@ -3,15 +3,16 @@ import torch_shape_inspector as tsi
 
 from sample_model.models.baseline_classification import Conv_Baseline, MLP_Baseline, ResNet18_Baseline
 
-# Instantiate the model
 cfgs = {
-    "print_locals_at_forward": True,
+    # Instantiate the model
     "print_model_modules": True,
     "print_model": False, 
     "print_model_params": True,
-    "model_cfgs_default": True
-}
 
+    # Inspect the model
+    "print_locals_at_forward": True,
+    "print_local_vars_at_error": True,
+}
 
 inspector = tsi.TorchShapeInspector(model_class=MLP_Baseline, cfgs = cfgs)
 model_cfgs = inspector.parse_config_file(filename="./sample_model/cfgs/baseline_classification_mlp.yaml")
