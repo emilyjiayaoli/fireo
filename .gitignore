@@ -1,4 +1,5 @@
 fireo-venv/
 sample_model/
+
 __pycache__/
 .gitignore
