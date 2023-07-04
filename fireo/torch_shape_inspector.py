@@ -3,8 +3,7 @@ import torch
 import argparse
 import traceback
 import yaml
-
-import ast
+import os
 
 class TorchShapeInspector():
     def __init__(self, model_class, cfgs=None):
@@ -51,8 +50,10 @@ class TorchShapeInspector():
         namespace = self.old_forward.__globals__
 
         self.updated_forward_source = updated_source
-        with open('./updated_source.py', 'w') as f:
-            f.write(updated_source)
+        
+        if self.cfgs["save_updated_forward_fn_path"] is not None:
+            with open(os.path.join(self.cfgs["save_updated_forward_fn_path"], 'updated_source.py'), 'w') as f:
+                f.write(updated_source)
 
         compiled = compile(updated_source, filename="<self.model.forward>", mode="exec")
         exec(compiled, namespace)
@@ -205,7 +206,7 @@ class TorchShapeInspector():
                 self._print_local_vars(local_vars=frame[0].f_locals, fn_name=frame[3], line_number=frame[2], file_path=frame[1])
 
 
-                if self.cfg["print_fn_call_stack"]:
+                if self.cfgs["print_fn_call_stack"]:
                     self._print_fn_call_stack(stack_trace)
                 
                 if self.cfgs["print_local_vars_at_error"]:

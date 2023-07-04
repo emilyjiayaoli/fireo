@@ -1,0 +1,27 @@
+
+# Dataset parameters
+input_size: 256
+batch_size: 32
+
+# Model parameters 
+model_modalities: ['rgb', 'ir']
+model_param_size: "10m"
+#  RGB
+model_rgb_encoder_image_shape: [3, 256, 256]
+baseline_encoder_hidden_dims: [16, 32, 64, 128] # list storing the out_channels at each layer in cnn encoder
+baseline_mlp_hidden_size: [650, 450, 275, 150]
+model_rgb_encoder_latent_size: 128 # size of the joint latent space vars after projection
+#  IR
+model_ir_encoder_image_shape: [1, 256, 256]
+model_ir_encoder_latent_size: 128 # size of the joint latent space vars after projection
+
+model_encoder_init_weights: false
+
+# joint latent space params
+model_verb_module_latent_size: 256 # size of the joint latent space vars
+
+model_decoder_hidden_size: 256 # transformer hidden size
+model_decoder_nheads: 8 # transformer # of heads
+
+model_decoder_output_class_num: 111 ######change later according to dataset
+

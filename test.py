@@ -1,20 +1,3 @@
-# fireo
-Model shape debugger for torch. Think torch.summary but better. Streamlining your PyTorch debugging experience.
-
-### Why fireo
-
-Basic:
-- calculates model's trainable parameter #
-- model shape debugging via model initialization + one forward pass given arbitrary inputs
-  
-Bonus:
-- only useful print statements, excluding PyTorch internals.
-- auto-tracks and saves local variable shapes w/o manual `print()` statements or debugger
-- handles unmultipliable shapes with ease, identifying and printing problematic shapes.
-- no modifications to source code needed
-
-## Get Started
-```python
 import torch
 import fireo.torch_shape_inspector as tsi
 
@@ -25,7 +8,7 @@ cfgs = {
     "print_model_modules": True,
     "print_model": False, 
     "print_model_params": True,
-    "save_updated_source_for_forward": True,
+    "save_updated_forward_fn_path": 'outputs/',
 
     # Inspect the model
     "print_locals_at_forward": True,
@@ -42,10 +25,4 @@ inspector.inspect_model(torch.randn(model_cfgs.batch_size, 3, 256, 256), torch.r
 
 # should run successfully
 inspector.inspect_model(torch.randn(model_cfgs.batch_size, 3, 256, 256), torch.randn(model_cfgs.batch_size, 3, 256, 256))
-```
 
-## Setup
-```
-pip install fireo/requirements.txt
-
-```
