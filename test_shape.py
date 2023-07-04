@@ -12,6 +12,7 @@ cfgs = {
     # Inspect the model
     "print_locals_at_forward": True,
     "print_local_vars_at_error": True,
+    "print_fn_call_stack": True,
 }
 
 inspector = tsi.TorchShapeInspector(model_class=MLP_Baseline, cfgs = cfgs)

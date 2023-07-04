@@ -19,24 +19,8 @@ class TorchShapeInspector():
         
         self.model = None
         self.model_modules = None
-    
-    def parse_config_file(self, filename):
-        '''Parses a YAML configuration file and returns a dictionary.'''
-        with open(filename, 'r') as f:
-            config = yaml.safe_load(f)
-        
-        parser = argparse.ArgumentParser()
-        for key, value in config.items():
-            if type(value) is bool:
-                parser.add_argument(f'--{key}', default=value, action=argparse.BooleanOptionalAction)
-            else:
-                parser.add_argument(f'--{key}', type=type(value), default=value)
 
-        # Parse the arguments
-        args = parser.parse_args()
-        return args
-
-    def remove_initial_indentation(self, text):
+    def _remove_initial_indentation(self, text):
         '''Remove the initial indentation from a block of text'''
         lines = text.split('\n')
         # Remove leading/trailing empty lines
@@ -62,7 +46,7 @@ class TorchShapeInspector():
             cur_return_idx = return_indices[i] + (i * len(new_command)) + len("return")
             updated_source = updated_source[:cur_return_idx] + new_command + updated_source[cur_return_idx:]
 
-        updated_source = self.remove_initial_indentation(updated_source)
+        updated_source = self._remove_initial_indentation(updated_source)
 
         namespace = self.old_forward.__globals__
 
@@ -75,38 +59,23 @@ class TorchShapeInspector():
         
         return namespace['forward']
 
-    def print_fn_call_stack(self, stack_trace):
+    def _print_fn_call_stack(self, stack_trace):
         '''Prints the function call stack'''
         print("fn_call_stack")
         for i in range(len(stack_trace)):
             frame = stack_trace[i]
             print("\t", i, ":", frame.function, "in", frame.filename, "at line", frame.lineno)
 
-    def get_fn_line_from_path(self, file_path, line_number:int):
+    def _get_fn_line_from_path(self, file_path, line_number:int):
         with open(file_path, 'r') as f:
             lines = f.readlines()
             return lines[line_number - 1]
     
-    def get_fn_line(self, source:str, line_number:int):
+    def _get_fn_line(self, source:str, line_number:int):
         lines = source.splitlines()
         return lines[line_number - 1]
     
-    def get_arg_names(self, code):
-        # Parse the code to an AST
-        tree = ast.parse(code)
-
-        # Find the first `Call` node
-        call_node = next(node for node in ast.walk(tree) if isinstance(node, ast.Call))
-
-        # Extract the positional argument names
-        arg_names = [arg.id for arg in call_node.args if isinstance(arg, ast.Name)]
-
-        # Extract the keyword argument names
-        kwarg_names = [kw.arg for kw in call_node.keywords]
-
-        return arg_names, kwarg_names
-
-    def print_local_vars(self, local_vars:dict, fn_name=None, line_number=None, file_path=None):
+    def _print_local_vars(self, local_vars:dict, fn_name=None, line_number=None, file_path=None):
         '''Prints the local variables. If fn_name, line_number, and file_path are provided, it prints the local variables at the time of error. 
             Else, it prints the local variables at the time of the successful forward pass.'''
         if fn_name is None:
@@ -128,7 +97,7 @@ class TorchShapeInspector():
             else:
                 print("\t---", var_name, ":", var_value, "Type:", type(var_value))
 
-    def dive_deeper(self, stack_trace):
+    def _dive_deeper(self, stack_trace):
         '''Given the stack_trace, this method attempts to dive deeper into the error and print out the local variables in user defined functions at the time of error'''
         
         print("\nLet's dive_deeper.... tracing back to where the error occured in user defined code...")
@@ -139,17 +108,17 @@ class TorchShapeInspector():
             if "/torch/" not in frame.filename and "/torch_shape_inspector.py" not in frame.filename:
                 if frame.filename == "<self.model.forward>":
                     # print("here:", frame.function, frame.filename, frame.lineno)
-                    line = self.get_fn_line(self.updated_forward_source, frame.lineno)
+                    line = self._get_fn_line(self.updated_forward_source, frame.lineno)
                 else:
-                    line = self.get_fn_line_from_path(frame.filename, frame.lineno)
+                    line = self._get_fn_line_from_path(frame.filename, frame.lineno)
 
                 print("\n\nError that occured (before stepping into torch) was:")
                 print("\t\t", line, "\tat line", frame.lineno, "in", frame.filename)
 
-                self.print_local_vars(local_vars, frame[3], frame[2], frame[1])
+                self._print_local_vars(local_vars, frame[3], frame[2], frame[1])
 
 
-    def print_model_params(self):
+    def _print_model_params(self):
         """
         Prints the total number of parameters in the model. If verbosity is turned on in the configurations,
         it also prints the architecture of the model.
@@ -167,6 +136,23 @@ class TorchShapeInspector():
         print(f'Total parameter count: {total_params / 1e6:.3f} M')
 
 
+    def parse_config_file(self, filename):
+        '''Parses a YAML configuration file and returns a dictionary.'''
+        with open(filename, 'r') as f:
+            config = yaml.safe_load(f)
+        
+        parser = argparse.ArgumentParser()
+        for key, value in config.items():
+            if type(value) is bool:
+                parser.add_argument(f'--{key}', default=value, action=argparse.BooleanOptionalAction)
+            else:
+                parser.add_argument(f'--{key}', type=type(value), default=value)
+
+        # Parse the arguments
+        args = parser.parse_args()
+        return args
+
+
     def instantiate_model(self, *args, **kwargs):
         '''Instantiates the model'''
         try:
@@ -177,7 +163,7 @@ class TorchShapeInspector():
                 print("Model:", self.model)
 
             if self.cfgs["print_model_params"]:
-                self.print_model_params()
+                self._print_model_params()
             
             self.model_modules = vars(self.model)["_modules"]
             if self.cfgs["print_model_modules"]:
@@ -186,6 +172,7 @@ class TorchShapeInspector():
         except Exception as e:
             print(f"Instantiated model unsuccessfully. Caught an error: {e}, at line {inspect.trace()[-1][2]} in {inspect.trace()[-1][1]}")
             traceback.print_exc()
+
 
     def inspect_model(self, *inputs):
         '''Attempts forward pass through model to inspect shapes of tensors in model
@@ -204,7 +191,7 @@ class TorchShapeInspector():
 
                 if self.cfgs["print_locals_at_forward"]:
                     print("Successfully inspected model. Printing local variables...")
-                    self.print_local_vars(local_vars) #not sure abt the last 2/3 args
+                    self._print_local_vars(local_vars) #not sure abt the last 2/3 args
                     print("\nOUTPUT SHAPE:", output.shape)
 
             except Exception as e:
@@ -215,14 +202,14 @@ class TorchShapeInspector():
 
                 print("Local variables at the moment of error:")
                 local_vars = frame[0].f_locals
-                self.print_local_vars(local_vars=frame[0].f_locals, fn_name=frame[3], line_number=frame[2], file_path=frame[1])
+                self._print_local_vars(local_vars=frame[0].f_locals, fn_name=frame[3], line_number=frame[2], file_path=frame[1])
 
 
-                if self.print_fn_call_stack:
-                    self.print_fn_call_stack(stack_trace)
+                if self.cfg["print_fn_call_stack"]:
+                    self._print_fn_call_stack(stack_trace)
                 
                 if self.cfgs["print_local_vars_at_error"]:
-                    self.dive_deeper(stack_trace)
+                    self._dive_deeper(stack_trace)
             
 
 
