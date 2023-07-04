@@ -6,6 +6,7 @@ Model shape debugger for torch. Think torch.summary but better. Streamlining you
 Basic:
 - calculates model's trainable parameter #
 - model shape debugging via model initialization + one forward pass given arbitrary inputs
+- currently supports pytorch model and yaml config
   
 Bonus:
 - only useful print statements, excluding PyTorch internals.
