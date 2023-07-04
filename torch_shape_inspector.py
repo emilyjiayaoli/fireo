@@ -90,60 +90,97 @@ class TorchShapeInspector():
     def get_fn_line(self, source:str, line_number:int):
         lines = source.splitlines()
         return lines[line_number - 1]
-
-    def get_arguments_from_call(self, code):
-        # Parse the code into an abstract syntax tree
+    
+    def get_arg_names(self, code):
+        # Parse the code to an AST
         tree = ast.parse(code)
 
-        # Get the function call node (the first node in the tree)
-        func_call = tree.body[0].value
+        # Find the first `Call` node
+        call_node = next(node for node in ast.walk(tree) if isinstance(node, ast.Call))
 
-        # Extract the argument values
-        arg_values = [ast.dump(arg) for arg in func_call.args]
-        kwarg_values = [(kwarg.arg, ast.dump(kwarg.value)) for kwarg in func_call.keywords]
+        # Extract the positional argument names
+        arg_names = [arg.id for arg in call_node.args if isinstance(arg, ast.Name)]
 
-        return arg_values, kwarg_values
+        # Extract the keyword argument names
+        kwarg_names = [kw.arg for kw in call_node.keywords]
 
-    def dive_deeper(self, stack_trace):
-        for i in range(len(stack_trace))[::-1]: # iterate backwards to see where the error occured before stepping into torch
-            frame = stack_trace[i]
-            local_vars = frame[0].f_locals
-            if "/torch/" not in frame.filename:
-                print("frame.filename:", frame.function, frame.filename, frame.lineno, frame[0].f_locals.keys())
-                if frame.filename == "<self.model.forward>":
-                    print("here:", frame.function, frame.filename, frame.lineno)
-                    line = self.get_fn_line(self.updated_forward_source, frame.lineno)
-                    print("line:", line)
-                    module_name_at_error = line[line.find("self."):line.find("(")]
-                    args_list, kwargs_list = self.get_arguments_from_call(self.remove_initial_indentation(line))
-                    print("args:", args_list[0], "kwargs:", kwargs_list, "module_name_at_error:", module_name_at_error)
+        return arg_names, kwarg_names
 
-                    print(type(args_list[0]))
-                    if args_list[0] in local_vars:
-                        print("args_list[0] in local_vars")
-                else:
-                    line = self.get_fn_line_from_path(frame.filename, frame.lineno)
+    def print_local_vars(self, local_vars:dict, fn_name=None, line_number=None, file_path=None):
+        '''Prints the local variables. If fn_name, line_number, and file_path are provided, it prints the local variables at the time of error. 
+            Else, it prints the local variables at the time of the successful forward pass.'''
+        if fn_name is None:
+            print("Printing local variables...")
+        else:
+            print("\tPrinting local variables...", "in", fn_name, "at line", line_number, "in", file_path)
 
-                    print("line:", line, "in", frame.filename, "at line", frame.lineno)
-
-                # if frame.filename[0] == "<" and frame.filename[-1] == ">":
-                #     print("here:", frame.function, type(frame.function))
-                #     source = inspect.getsource(frame.function)
-                #     return frame
-
-    def print_local_vars(self, local_var:dict):
-        '''Prints the local variables'''
-        print("\nPrinting local variables in forward:")
-        for var_name, var_value in local_var.items():
+        print("\t* Local variables keys:", local_vars.keys())
+        for var_name, var_value in local_vars.items():
             if var_name == "self":
                 continue
             var_name_type = type(var_name)
             if isinstance(var_value, torch.Tensor):
-                print("---", var_name, ":", var_value.shape)
+                print("\t---", var_name, ":", var_value.shape)
             elif isinstance(var_value, list) or isinstance(var_value, tuple):
-                print("---", var_name, ":", len(var_value), "elements", "Type:", type(var_value))
+                print("\t---", var_name, ":", len(var_value), "elements", "Type:", type(var_value))
+            elif isinstance(var_value, dict):
+                print("\t--", var_name, ":", "keys", var_value.keys(), "Type:", type(var_value))
             else:
-                print("---", var_name, ":", var_value, "Type:", type(var_value))
+                print("\t---", var_name, ":", var_value, "Type:", type(var_value))
+
+    def dive_deeper(self, stack_trace):
+        '''Given the stack_trace, this method attempts to dive deeper into the error and print out the local variables in user defined functions at the time of error'''
+        
+        print("\nLet's dive_deeper.... tracing back to where the error occured in user defined code...")
+        
+        for i in range(len(stack_trace))[::-1]: # iterate backwards to see where the error occured before stepping into torch
+            frame = stack_trace[i]
+            local_vars = frame[0].f_locals
+            if "/torch/" not in frame.filename and "/torch_shape_inspector.py" not in frame.filename:
+                if frame.filename == "<self.model.forward>":
+                    # print("here:", frame.function, frame.filename, frame.lineno)
+                    line = self.get_fn_line(self.updated_forward_source, frame.lineno)
+                else:
+                    line = self.get_fn_line_from_path(frame.filename, frame.lineno)
+
+                print("\n\nError that occured (before stepping into torch) was:")
+                print("\t\t", line, "\tat line", frame.lineno, "in", frame.filename)
+
+                self.print_local_vars(local_vars, frame[3], frame[2], frame[1])
+
+                # module_name_at_error = line[line.find("self.")+len("self."):line.find("(")]
+                # args_list, kwarg_names = self.get_arg_names(self.remove_initial_indentation(line))
+                # print("args:", args_list[0], "kwargs", kwarg_names, "module_name_at_error:", module_name_at_error)
+
+                # print(self.model_modules.keys())
+                # if module_name_at_error in self.model_modules:
+                #     print('module_name_at_error in self.model_modules', self.model_modules.keys())
+
+                #calling the module again
+                
+                # try:
+                #     arg_tuple = tuple([local_vars[arg] for arg in args_list])
+                #     kwargs_tuple = tuple([local_vars[kwarg] for kwarg in kwarg_names])
+
+                #     arg_tuple_shapes = tuple([local_vars[arg].shape if isinstance(local_vars[arg], torch.Tensor) else local_vars[arg] for arg in args_list])
+                #     kwargs_tuple_shapes = tuple([local_vars[kwarg].shape if isinstance(local_vars[kwarg], torch.Tensor) else local_vars[kwarg] for kwarg in kwarg_names])
+                #     # kwargs_tuple = tuple([local_vars[kwarg] for kwarg in kwarg_names])
+                #     print("arg_tuple:", arg_tuple_shapes, "kwargs_tuple:", kwargs_tuple_shapes)
+                #     print(arg_tuple_shapes + kwargs_tuple_shapes)
+
+                #     print("In the call: self." + module_name_at_error, arg_tuple_shapes + kwargs_tuple_shapes)
+                #     self.model_modules[module_name_at_error](*(arg_tuple + kwargs_tuple)) # the call
+
+                # except Exception as e:
+                #     print(f"Caught an error: {e}")
+                #     stack_trace = inspect.trace() # list of FrameInfo objects
+                #     frame = stack_trace[-1] # get frame at which error occured, is a list [FrameInfo, 26, fn3, [error], ...]
+                #     print("Error in the method:", frame[3], "at line", frame[2], "in", frame[1])
+
+                #     if self.print_fn_call_stack:
+                #         self.print_fn_call_stack(stack_trace)
+
+                #     # traceback.print_exc()
 
     def print_model_params(self):
         """
@@ -199,21 +236,25 @@ class TorchShapeInspector():
                     local_vars, output, = outputs
 
                 if self.cfgs["print_locals_at_forward"]:
-                    self.print_local_vars(local_vars)
+                    print("Successfully inspected model. Printing local variables...")
+                    self.print_local_vars(local_vars) #not sure abt the last 2/3 args
                     print("\nOUTPUT SHAPE:", output.shape)
 
             except Exception as e:
-                print(f"Caught an error: {e}")
                 stack_trace = inspect.trace() # list of FrameInfo objects
                 frame = stack_trace[-1] # get frame at which error occured, is a list [FrameInfo, 26, fn3, [error], ...]
-                print("Error in the method:", frame[3], "at line", frame[2], "in", frame[1])
+                print(f"Inspection Failed. Caught an error ", e, "in the method:", frame[3], "at line", frame[2], "in", frame[1])
+                traceback.print_exc()
+
+                print("Local variables at the moment of error:")
+                local_vars = frame[0].f_locals
+                self.print_local_vars(local_vars=frame[0].f_locals, fn_name=frame[3], line_number=frame[2], file_path=frame[1])
+
 
                 if self.print_fn_call_stack:
                     self.print_fn_call_stack(stack_trace)
                     self.dive_deeper(stack_trace)
-
-                local_vars = frame[0].f_locals
-                self.print_local_vars(local_vars)
+            
 
 
 
