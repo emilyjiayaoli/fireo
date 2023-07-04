@@ -14,6 +14,7 @@ Bonus:
 - no modifications to source code needed
 
 ## Get Started
+### Code Snippet
 ```python
 import torch
 import fireo.torch_shape_inspector as tsi
@@ -42,6 +43,12 @@ inspector.inspect_model(torch.randn(model_cfgs.batch_size, 3, 256, 256), torch.r
 
 # should run successfully
 inspector.inspect_model(torch.randn(model_cfgs.batch_size, 3, 256, 256), torch.randn(model_cfgs.batch_size, 3, 256, 256))
+```
+
+### Run existing tests
+In root, run:
+```python
+python test.py
 ```
 
 ## Setup
