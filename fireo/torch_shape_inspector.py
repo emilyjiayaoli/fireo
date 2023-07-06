@@ -192,8 +192,13 @@ class TorchShapeInspector():
 
                 if self.cfgs["print_locals_at_forward"]:
                     print("Successfully inspected model. Printing local variables...")
-                    self._print_local_vars(local_vars) #not sure abt the last 2/3 args
-                    print("\nOUTPUT SHAPE:", output.shape)
+                    self._print_local_vars(local_vars) 
+
+                    if isinstance(output, torch.Tensor):
+                        print("\nOUTPUT SHAPE:", output.shape)
+                    else:
+                        print("\nNON-TENSOR OUTPUT TYPE:", type(output))
+
 
             except Exception as e:
                 stack_trace = inspect.trace() # list of FrameInfo objects
@@ -204,7 +209,6 @@ class TorchShapeInspector():
                 print("Local variables at the moment of error:")
                 local_vars = frame[0].f_locals
                 self._print_local_vars(local_vars=frame[0].f_locals, fn_name=frame[3], line_number=frame[2], file_path=frame[1])
-
 
                 if self.cfgs["print_fn_call_stack"]:
                     self._print_fn_call_stack(stack_trace)

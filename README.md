@@ -3,12 +3,12 @@ Model shape debugger for torch. Think torch.summary but better. Streamlining you
 
 ### Why fireo
 
-Basic:
+**Basic:**
 - calculates model's trainable parameter #
 - model shape debugging via model initialization + one forward pass given arbitrary inputs
 - currently supports pytorch model and yaml config
   
-Bonus:
+**Bonus:**
 - only useful print statements, excluding PyTorch internals.
 - auto-tracks and saves local variable shapes w/o manual `print()` statements or debugger
 - handles unmultipliable shapes with ease, identifying and printing problematic shapes.
