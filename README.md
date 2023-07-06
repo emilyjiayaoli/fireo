@@ -1,4 +1,4 @@
-# fireo
+# fireo 🔥
 Model shape debugger for torch. Think torch.summary but better. Streamlining your PyTorch debugging experience.
 
 ### Why fireo
