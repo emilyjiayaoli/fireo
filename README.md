@@ -27,7 +27,7 @@ cfgs = {
     "print_model_modules": True,
     "print_model": False, 
     "print_model_params": True,
-    "save_updated_source_for_forward": True,
+    "save_updated_forward_fn_path": 'outputs/',
 
     # Inspect the model
     "print_locals_at_forward": True,
